@@ -39,7 +39,6 @@ func main() {
 		cmd.Parse(os.Args[2:])
 		hash := cmd.Arg(0)
 		commands.CatFile(hash)
-		
 	}
 
 }
