@@ -11,6 +11,7 @@ func main() {
 	if len(os.Args) < 2 {
 		os.Exit(1)
 	}
+	
 
 	switch os.Args[1] {
 	case "init":
@@ -39,6 +40,9 @@ func main() {
 		cmd.Parse(os.Args[2:])
 		hash := cmd.Arg(0)
 		commands.CatFile(hash)
+	case "add":
+		cmd := flag.NewFlagSet("add", flag.ExitOnError)
+		cmd.Parse(os.Args[2:])
+		commands.Add(".")
 	}
-
 }

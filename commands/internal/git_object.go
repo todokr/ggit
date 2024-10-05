@@ -7,6 +7,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"crypto/sha1"
+	"fmt"
+	"encoding/hex"
 )
 
 func LoadObj(hash string) (*GitObject, error) {
@@ -29,7 +32,10 @@ func LoadObj(hash string) (*GitObject, error) {
 		return nil, err
 	}
 	tpe = strings.Trim(tpe, " ")
-	objType := newObjType(tpe)
+	objType, err := NewObjType(tpe)
+	if err != nil {
+		return nil, err
+	}
 
 	sizeStr, err := br.ReadString(0x00)
 	if err != nil {
@@ -48,13 +54,34 @@ func LoadObj(hash string) (*GitObject, error) {
 
 	return &GitObject{
 		Type: objType,
+		Hash: hash,
 		Size: size,
 		Data: buf,
 	}, nil
 
 }
 
+func NewObject(tpe ObjType, data []byte) (*GitObject, error) {
+	size := int64(len(data))
+	sha1 := sha1.New()
+	header := []byte(fmt.Sprintf("%s %d\x00", tpe, size))
+	_, err := sha1.Write(append(header, data...))
+	if err != nil {
+		return nil, err
+	}
+	hash := hex.EncodeToString(sha1.Sum(nil))
+	return &GitObject{
+		Type: tpe,
+		Hash: hash,
+		Size: size,
+		Data: data,
+	}, nil
+}
+
 type ObjType string
+func (t ObjType) String() string {
+	return string(t)
+}
 
 const (
 	Unknown ObjType = ""
@@ -63,21 +90,22 @@ const (
 	Blob            = "blob"
 )
 
-func newObjType(tpe string) ObjType {
+func NewObjType(tpe string) (ObjType, error) {
 	switch tpe {
 	case "commit":
-		return Commit
+		return Commit, nil
 	case "tree":
-		return Tree
+		return Tree, nil
 	case "blob":
-		return Blob
+		return Blob, nil
 	default:
-		return Unknown
+		return Unknown, fmt.Errorf("Unknown object type: %s", tpe)
 	}
 }
 
 type GitObject struct {
 	Type ObjType
+	Hash string
 	Size int64
 	Data []byte
 }
